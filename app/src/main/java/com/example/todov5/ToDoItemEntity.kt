@@ -11,4 +11,3 @@ data class ToDoItemEntity(
     val priority: String,
     val isDone: Boolean
 )
-

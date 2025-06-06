@@ -16,9 +16,17 @@ class AddToDoFragment : Fragment() {
     private var _binding: FragmentAddTodoBinding? = null
     private val binding get() = _binding!!
 
-    // Use activityViewModels to share ViewModel between fragments
     private val viewModel: ToDoViewModel by lazy {
         ViewModelProvider(requireActivity(), ViewModelProvider.AndroidViewModelFactory.getInstance(requireActivity().application))[ToDoViewModel::class.java]
+    }
+
+    private val textWatcher = object : TextWatcher {
+        override fun afterTextChanged(s: Editable?) {
+            // enable save if there's text
+            binding.buttonSaveTask.isEnabled = !s.isNullOrBlank()
+        }
+        override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+        override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
     }
 
     override fun onCreateView(
@@ -31,40 +39,26 @@ class AddToDoFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-
-        // Set up Priority spinner with capitalized labels (High, Medium, Low)
-        val priorities = Priority.values().map { it.name.lowercase().replaceFirstChar { c -> c.uppercase() } }
-        val adapter = ArrayAdapter(requireContext(), android.R.layout.simple_spinner_item, priorities)
+        val prios = Priority.values().map { it.name.lowercase().replaceFirstChar { c -> c.uppercase() } }
+        val adapter = ArrayAdapter(requireContext(), android.R.layout.simple_spinner_item, prios)
         adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
         binding.spinnerPriority.adapter = adapter
-
-        // Set Save button to darker purple and only enable if title is not empty
         binding.buttonSaveTask.setBackgroundColor(0xFF7E57C2.toInt())
-        binding.editTaskTitle.addTextChangedListener(object : TextWatcher {
-            override fun afterTextChanged(s: Editable?) {
-                binding.buttonSaveTask.isEnabled = !s.isNullOrBlank()
-            }
-            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
-            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
-        })
-
-        // Save button click
+        binding.editTaskTitle.addTextChangedListener(textWatcher)
         binding.buttonSaveTask.setOnClickListener {
-            val title = binding.editTaskTitle.text.toString()
-            val description = binding.editTaskDescription.text.toString().takeIf { it.isNotBlank() }
-            val priority = Priority.values()[binding.spinnerPriority.selectedItemPosition]
+            val t = binding.editTaskTitle.text.toString()
+            val d = binding.editTaskDescription.text.toString().takeIf { it.isNotBlank() }
+            val p = Priority.values()[binding.spinnerPriority.selectedItemPosition]
             val newTask = ToDoItem(
                 id = (viewModel.tasks.value?.maxOfOrNull { it.id } ?: 0) + 1,
-                title = title,
-                description = description,
-                priority = priority,
+                title = t,
+                description = d,
+                priority = p,
                 isDone = false
             )
             viewModel.addTask(newTask)
             findNavController().navigate(R.id.action_AddToDoFragment_to_ToDoListFragment)
         }
-
-        // Remove buttonBackToList logic since the FAB/app bar handles navigation
     }
 
     override fun onDestroyView() {
